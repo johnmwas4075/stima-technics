@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import {
   ArrowRight,
   ChevronDown,
@@ -25,6 +26,8 @@ import { logoUrl, nav, heroSlides, type Service, type Testimonial } from '@/lib/
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
   const [mobile, setMobile] = useState(false)
+  const pathname = usePathname()
+  const isCurrent = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
     <header className="site-header">
@@ -38,20 +41,20 @@ export function SiteHeader() {
         </Link>
         <nav className="desktop-nav">
           {nav.map((item) => (
-            <div className="nav-item" key={item.label}>
+            <div className="nav-item" key={item.label} onMouseEnter={() => item.children && setOpen(true)} onMouseLeave={() => item.children && setOpen(false)}>
               {item.children ? (
-                <button onClick={() => setOpen(!open)} aria-expanded={open}>
-                  {item.label}
-                  <ChevronDown size={15} />
-                </button>
+                <>
+                  <Link href={item.href} className={isCurrent(item.href) ? 'active' : ''}>{item.label}</Link>
+                  <button className="dropdown-toggle" onClick={() => setOpen(!open)} aria-label={`Toggle ${item.label} menu`} aria-expanded={open}><ChevronDown size={15} /></button>
+                </>
               ) : (
-                <Link href={item.href}>{item.label}</Link>
+                <Link href={item.href} className={isCurrent(item.href) ? 'active' : ''}>{item.label}</Link>
               )}
               {item.children && open && (
                 <div className="dropdown">
                   {item.children.map((child) => (
-                    <Link href="/about" key={child}>
-                      {child}
+                    <Link href={child.href} key={child.href} onClick={() => setOpen(false)}>
+                      {child.label}
                     </Link>
                   ))}
                 </div>
@@ -59,7 +62,7 @@ export function SiteHeader() {
             </div>
           ))}
           <Link className="quote-button" href="/request-quote">
-            Request a quote <ArrowRight size={15} />
+            Request a quote
           </Link>
         </nav>
         <button className="mobile-toggle" onClick={() => setMobile(!mobile)} aria-label="Toggle navigation">
@@ -69,12 +72,12 @@ export function SiteHeader() {
       {mobile && (
         <nav className="mobile-nav">
           {nav.map((item) => (
-            <Link onClick={() => setMobile(false)} href={item.href} key={item.label}>
+            <Link onClick={() => setMobile(false)} href={item.href} key={item.label} className={isCurrent(item.href) ? 'active' : ''}>
               {item.label}
             </Link>
           ))}
           <Link className="quote-button" href="/request-quote">
-            Request a quote <ArrowRight size={15} />
+            Request a quote
           </Link>
         </nav>
       )}
@@ -117,6 +120,19 @@ export function SiteFooter() {
             <Mail size={15} />
             hello@stimatechnics.co.ke
           </span>
+        </div>
+        <div className="footer-newsletter">
+          <p className="footer-label">Stay connected</p>
+          <p>Subscribe to our newsletter for company news and technical updates.</p>
+          <form className="newsletter-form" onSubmit={(event) => event.preventDefault()}>
+            <label className="sr-only" htmlFor="newsletter-email">Email address</label>
+            <input id="newsletter-email" type="email" placeholder="Your email address" required />
+            <button type="submit">Subscribe</button>
+          </form>
+          <div className="social-links" aria-label="Social media links">
+            <a href="https://www.facebook.com" target="_blank" rel="noreferrer" aria-label="Facebook"><span aria-hidden="true">f</span></a>
+            <a href="https://www.linkedin.com" target="_blank" rel="noreferrer" aria-label="LinkedIn"><span aria-hidden="true">in</span></a>
+          </div>
         </div>
       </div>
       <div className="shell footer-bottom">

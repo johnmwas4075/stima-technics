@@ -12,6 +12,7 @@ export const heroSlides = [
 ]
 
 export type Service = { slug: string; title: string; short: string; description: string; icon: LucideIcon; image: string; scope: string[]; capabilities: string[]; benefits: string[]; applications: string[]; industries: string[] }
+export type Testimonial = { image: string; quote: string; name: string; role: string }
 const baseImage = 'https://images.unsplash.com/photo-'
 export const services: Service[] = [
   { slug: 'electrical-wiring-installation', title: 'Electrical Wiring & Installation', short: 'Safe, compliant power distribution for new builds and renovations.', description: 'We engineer and install electrical systems that are safe, efficient, maintainable, and ready for the demands of modern buildings.', icon: Cable, image: baseImage+'1558008258-3256797b43f3?auto=format&fit=crop&w=1400&q=85', scope: ['LV power distribution', 'Lighting and small power', 'Containment and cable management', 'Testing and commissioning'], capabilities: ['Load assessment and design', 'Full installation supervision', 'As-built documentation', 'Compliance testing'], benefits: ['Reliable day-to-day operation', 'Reduced lifecycle risk', 'Clean, maintainable installations'], applications: ['New builds', 'Fit-outs', 'Upgrades and refurbishments'], industries: ['Commercial', 'Industrial', 'Institutional', 'Residential'] },
@@ -25,8 +26,9 @@ export const services: Service[] = [
   { slug: 'electrical-supplies-installation', title: 'Electrical Supplies & Installation', short: 'Quality equipment, sourced responsibly and installed correctly.', description: 'We supply the components and technical expertise needed to complete electrical projects with confidence.', icon: Hammer, image: baseImage+'1586864387967-d02ef85d93e8?auto=format&fit=crop&w=1400&q=85', scope: ['Equipment sourcing', 'Distribution equipment', 'Lighting and controls', 'Installation support'], capabilities: ['Technical specification', 'Supplier coordination', 'Quality checks', 'Site delivery'], benefits: ['Fewer procurement gaps', 'Fit-for-purpose equipment', 'One accountable partner'], applications: ['Projects', 'Refurbishments', 'Maintenance works'], industries: ['Commercial', 'Industrial', 'Construction'] },
 ]
 export const stats = [['12+', 'Years of experience'], ['180+', 'Clients supported'], ['420+', 'Projects delivered']]
+export const accreditations = ['NCA', 'EPRA', 'KEBS', 'IEK']
 export const markets = ['Construction', 'Commercial Buildings', 'Industrial Facilities', 'Schools & Educational Institutions', 'Residential Developments', 'Property & Facilities Management', 'Hospitality', 'Healthcare', 'Other Institutions']
-export const nav = [{ label: 'Home', href: '/' }, { label: 'About Us', href: '/about', children: ['History', 'Mission & Vision', 'Company Principles', 'Core Values', 'Markets'] }, { label: 'Services', href: '/services' }, { label: 'Careers', href: '/careers' }, { label: 'Contact', href: '/contact' }]
+export const nav = [{ label: 'Home', href: '/' }, { label: 'About Us', href: '/about', children: [{ label: 'History', href: '/about#history' }, { label: 'Mission & Vision', href: '/about#mission-vision' }, { label: 'Why Work With Us', href: '/about#why-work-with-us' }, { label: 'Core Values', href: '/about#core-values' }, { label: 'Markets', href: '/about#markets' }] }, { label: 'Services', href: '/services' }, { label: 'Careers', href: '/careers' }, { label: 'Contact', href: '/contact' }]
 export const testimonial = { quote: 'Stima Technics brought discipline, clarity, and real technical ownership to our project. Their team delivered exactly what was promised.', name: 'Project Director', company: 'Commercial Development Partner' }
 export const testimonials = [
   {
