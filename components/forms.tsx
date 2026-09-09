@@ -7,6 +7,12 @@ function FormSuccess({ children }: { children: React.ReactNode }) {
   return <p className="form-success" role="status">{children}</p>
 }
 
+function saveSubmission(key: string, form: HTMLFormElement) {
+  const entry = { ...Object.fromEntries(new FormData(form).entries()), receivedAt: new Date().toLocaleString() }
+  const current = JSON.parse(window.localStorage.getItem(key) || '[]')
+  window.localStorage.setItem(key, JSON.stringify([...current, entry]))
+}
+
 export function RequestQuoteForm() {
   const [submitted, setSubmitted] = useState(false)
 
@@ -15,7 +21,7 @@ export function RequestQuoteForm() {
   }
 
   return (
-    <form className="form-card" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
+    <form className="form-card" onSubmit={(event) => { event.preventDefault(); saveSubmission('stima-quote-requests', event.currentTarget); setSubmitted(true) }}>
       <div className="form-grid">
         <div className="field"><label htmlFor="quote-name">Full name</label><input id="quote-name" name="name" required /></div>
         <div className="field"><label htmlFor="quote-company">Company</label><input id="quote-company" name="company" /></div>
@@ -39,7 +45,7 @@ export function ContactForm() {
   }
 
   return (
-    <form className="form-card contact-form" onSubmit={(event) => { event.preventDefault(); setSubmitted(true) }}>
+    <form className="form-card contact-form" onSubmit={(event) => { event.preventDefault(); saveSubmission('stima-contact-messages', event.currentTarget); setSubmitted(true) }}>
       <div className="form-grid">
         <div className="field"><label htmlFor="contact-name">Name</label><input id="contact-name" name="name" required /></div>
         <div className="field"><label htmlFor="contact-email">Email address</label><input id="contact-email" name="email" type="email" required /></div>
