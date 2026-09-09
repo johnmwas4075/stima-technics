@@ -5,7 +5,8 @@ import { accreditations, coreValues, markets, principles, services, stats, testi
 
 type Tab = 'home' | 'about' | 'services' | 'careers' | 'applications' | 'contact' | 'messages' | 'quotes' | 'media'
 type ServiceDraft = { id: string; title: string; short: string; description: string; image: string; sections: Record<string, boolean> }
-type Position = { id: number; title: string; responsibilities: string; closesOn: string; postedOn: string }
+type Position = { id: string; title: string; responsibilities: string; closesOn: string; postedOn: string }
+type JobApplication = { id: string; positionId: string; name: string; email: string; phone: string; cvUrl?: string | null; coverLetter?: string | null; status: string; createdAt: string; position: { title: string }; interviewResponse?: { outcome: string; notes?: string | null; scheduledFor?: string | null } | null }
 
 const tabs: { id: Tab; label: string; hint: string }[] = [
   { id: 'home', label: 'Home', hint: 'Homepage content' },
@@ -45,13 +46,16 @@ export default function AdminPage() {
   const [serviceItems, setServiceItems] = useState(initialServices)
   const [selectedService, setSelectedService] = useState(initialServices[0].id)
   const [positions, setPositions] = useState<Position[]>([])
+  const [applications, setApplications] = useState<JobApplication[]>([])
   const [contact, setContact] = useState({ phone: '+254 700 000 000', email: 'hello@stimatechnics.co.ke', office: 'Thika, Kenya', hours: 'Monday - Friday, 8:00am - 5:00pm' })
   const [messages, setMessages] = useState<{ name: string; email: string; message: string; receivedAt: string }[]>([])
   const [quotes, setQuotes] = useState<{ name: string; email: string; service: string; receivedAt: string }[]>([])
-  const [expandedPosition, setExpandedPosition] = useState<number | null>(null)
+  const [expandedPosition, setExpandedPosition] = useState<string | null>(null)
 
   useEffect(() => {
-    const draft = JSON.parse(window.localStorage.getItem('stima-admin-draft') || 'null')
+    const load = async () => {
+    const contentResponse = await fetch('/api/admin/content')
+    const draft = contentResponse.ok ? (await contentResponse.json()).data : null
     if (draft) {
       if (draft.homeSummary) setHomeSummary(draft.homeSummary)
       if (draft.statValues) setStatValues(draft.statValues)
@@ -65,24 +69,29 @@ export default function AdminPage() {
       if (draft.values) setValues(draft.values)
       if (draft.marketItems) setMarketItems(draft.marketItems)
       if (draft.serviceItems) setServiceItems(draft.serviceItems)
-      if (draft.positions) setPositions(draft.positions)
       if (draft.contact) setContact(draft.contact)
     }
-    const storedMessages = window.localStorage.getItem('stima-contact-messages')
-    const storedQuotes = window.localStorage.getItem('stima-quote-requests')
-    if (storedMessages) setMessages(JSON.parse(storedMessages))
-    if (storedQuotes) setQuotes(JSON.parse(storedQuotes))
+    const inboxResponse = await fetch('/api/admin/inbox')
+    if (inboxResponse.ok) { const inbox = await inboxResponse.json(); setMessages(inbox.messages); setQuotes(inbox.quotes) }
+    const jobsResponse = await fetch('/api/jobs')
+    if (jobsResponse.ok) { const jobs = await jobsResponse.json(); setPositions(jobs.positions.map((position: { id: string; title: string; responsibilities: string; closesOn: string | null; postedOn: string }) => ({ ...position, closesOn: position.closesOn ? position.closesOn.slice(0, 10) : '', postedOn: position.postedOn.slice(0, 10) }))) }
+    const applicationsResponse = await fetch('/api/jobs/applications')
+    if (applicationsResponse.ok) { const result = await applicationsResponse.json(); setApplications(result.applications) }
+    }
+    load().catch(() => undefined)
   }, [])
 
-  const save = () => {
-    window.localStorage.setItem('stima-admin-draft', JSON.stringify({ homeSummary, statValues, featuredServices, accreditationItems, testimonialItems, history, mission, vision, whyWork, values, marketItems, serviceItems, positions, contact }))
-    setSaved(true)
-    window.setTimeout(() => setSaved(false), 2200)
+  const save = async () => {
+    const response = await fetch('/api/admin/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ homeSummary, statValues, featuredServices, accreditationItems, testimonialItems, history, mission, vision, whyWork, values, marketItems, serviceItems, contact }) })
+    const savedPositions = await Promise.all(positions.map(async (position) => { const endpoint = position.id ? `/api/jobs/${position.id}` : '/api/jobs'; const method = position.id ? 'PATCH' : 'POST'; const jobResponse = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(position) }); return jobResponse.ok ? (await jobResponse.json()).position as Position : position }))
+    if (response.ok) { setPositions(savedPositions); setSaved(true); window.setTimeout(() => setSaved(false), 2200) }
   }
   const currentService = serviceItems.find((service) => service.id === selectedService) ?? serviceItems[0]
   const updateService = (key: keyof ServiceDraft, value: string) => setServiceItems((items) => items.map((service) => service.id === selectedService ? { ...service, [key]: value } : service))
   const addService = () => { const id = `service-${Date.now()}`; setServiceItems((items) => [...items, { id, title: 'New service', short: '', description: '', image: '', sections: { 'Scope of services': true, 'Key capabilities': true, 'Why it matters': true, 'Where it fits': true, 'Industries served': true } }]); setSelectedService(id) }
-  const addPosition = () => setPositions((items) => [...items, { id: Date.now(), title: 'New position', responsibilities: '', closesOn: '', postedOn: new Date().toISOString().slice(0, 10) }])
+  const addPosition = () => setPositions((items) => [...items, { id: '', title: 'New position', responsibilities: '', closesOn: '', postedOn: new Date().toISOString().slice(0, 10) }])
+  const removePosition = async (id: string, index: number) => { if (id) await fetch(`/api/jobs/${id}`, { method: 'DELETE' }); setPositions((items) => items.filter((_, itemIndex) => itemIndex !== index)) }
+  const saveInterview = async (application: JobApplication, form: HTMLFormElement) => { const fields = Object.fromEntries(new FormData(form)); const response = await fetch(`/api/jobs/applications/${application.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: fields.status, interview: { outcome: fields.outcome, notes: fields.notes, scheduledFor: fields.scheduledFor } }) }); if (response.ok) { const refreshed = await fetch('/api/jobs/applications').then((result) => result.json()); setApplications(refreshed.applications) } }
 
   return <main className="admin-page"><aside className="admin-sidebar"><a className="admin-brand" href="/"><strong>STIMA</strong><span>ADMIN PANEL</span></a><nav>{tabs.map((item) => <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><strong>{item.label}</strong><small>{item.hint}</small></button>)}</nav><a className="admin-view-site" href="/" target="_blank" rel="noreferrer">View public website ↗</a></aside>
     <section className="admin-content"><header className="admin-topbar"><div><p className="eyebrow">Content management</p><h1>{tabs.find((item) => item.id === tab)?.label}</h1></div><button className="admin-save" onClick={save}>{saved ? 'Saved locally' : 'Save changes'}</button></header>
@@ -93,9 +102,9 @@ export default function AdminPage() {
 
       {tab === 'services' && <div className="admin-stack"><AdminCard title="Service cards" description="Add, remove, or select a service to edit its card and detail page."><div className="service-admin-layout"><div className="service-admin-list">{serviceItems.map((service) => <button key={service.id} className={selectedService === service.id ? 'active' : ''} onClick={() => setSelectedService(service.id)}>{service.title || 'Untitled service'}</button>)}<button className="admin-add" onClick={addService}>+ Add service</button></div><div className="service-admin-editor"><div className="admin-grid two"><Field label="Service title" value={currentService.title} onChange={(value) => updateService('title', value)} /><Field label="Card image URL" value={currentService.image} onChange={(value) => updateService('image', value)} /></div><Field label="Card summary" type="textarea" value={currentService.short} onChange={(value) => updateService('short', value)} /><Field label="Service detail introduction" type="textarea" value={currentService.description} onChange={(value) => updateService('description', value)} /><p className="admin-label">Detail-page sections</p><div className="admin-toggle-list">{Object.entries(currentService.sections).map(([label, enabled]) => <label key={label}><span>{label}</span><input type="checkbox" checked={enabled} onChange={() => setServiceItems((items) => items.map((service) => service.id === selectedService ? { ...service, sections: { ...service.sections, [label]: !enabled } } : service))} /></label>)}</div><p className="admin-note">Turn a section on to show and edit its content on this service&apos;s individual detail page.</p></div></div></AdminCard></div>}
 
-      {tab === 'careers' && <div className="admin-stack"><AdminCard title="Open positions" description="Add a role, its key responsibilities, publish date, and closing date."><button className="admin-add" onClick={addPosition}>+ Add open position</button><div className="admin-stack compact">{positions.length === 0 && <p className="admin-empty">No positions have been added yet.</p>}{positions.map((position) => <div className="admin-repeater" key={position.id}><div className="admin-grid two"><Field label="Position title" value={position.title} onChange={(title) => setPositions((items) => items.map((item) => item.id === position.id ? { ...item, title } : item))} /><Field label="Posted on" type="date" value={position.postedOn} onChange={(postedOn) => setPositions((items) => items.map((item) => item.id === position.id ? { ...item, postedOn } : item))} /><Field label="Key responsibilities" type="textarea" value={position.responsibilities} onChange={(responsibilities) => setPositions((items) => items.map((item) => item.id === position.id ? { ...item, responsibilities } : item))} /><Field label="Apply before / closing date" type="date" value={position.closesOn} onChange={(closesOn) => setPositions((items) => items.map((item) => item.id === position.id ? { ...item, closesOn } : item))} /></div><button className="admin-remove" onClick={() => setPositions((items) => items.filter((item) => item.id !== position.id))}>Remove position</button></div>)}</div></AdminCard></div>}
+      {tab === 'careers' && <div className="admin-stack"><AdminCard title="Open positions" description="Add a role, its key responsibilities, publish date, and closing date. Use Save changes to publish edits."><button className="admin-add" onClick={addPosition}>+ Add open position</button><div className="admin-stack compact">{positions.length === 0 && <p className="admin-empty">No positions have been added yet.</p>}{positions.map((position, index) => <div className="admin-repeater" key={position.id || index}><div className="admin-grid two"><Field label="Position title" value={position.title} onChange={(title) => setPositions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, title } : item))} /><Field label="Posted on" type="date" value={position.postedOn} onChange={(postedOn) => setPositions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, postedOn } : item))} /><Field label="Key responsibilities" type="textarea" value={position.responsibilities} onChange={(responsibilities) => setPositions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, responsibilities } : item))} /><Field label="Apply before / closing date" type="date" value={position.closesOn} onChange={(closesOn) => setPositions((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, closesOn } : item))} /></div><button className="admin-remove" onClick={() => removePosition(position.id, index)}>Remove position</button></div>)}</div></AdminCard></div>}
 
-      {tab === 'applications' && <div className="admin-stack"><AdminCard title="Received applications" description="Applications are ordered by when the job was first posted.">{positions.length === 0 ? <p className="admin-empty">There are no job posts or received applications yet.</p> : <div className="application-list">{[...positions].sort((a, b) => a.postedOn.localeCompare(b.postedOn)).map((position) => <div key={position.id} className="application-role"><button onClick={() => setExpandedPosition(expandedPosition === position.id ? null : position.id)}><span><strong>{position.title}</strong><small>Posted {position.postedOn || '—'} · Closes {position.closesOn || '—'}</small></span><span>{expandedPosition === position.id ? '−' : '+'}</span></button>{expandedPosition === position.id && <div className="application-candidates"><p>No applications have been received for this position yet.</p><p className="admin-note">When applications arrive, each candidate’s name, submission date, and CV download link will appear here.</p></div>}</div>)}</div>}</AdminCard></div>}
+      {tab === 'applications' && <div className="admin-stack"><AdminCard title="Received applications" description="Review applicants, update their status, and record interview responses.">{applications.length === 0 ? <p className="admin-empty">No applications have been received yet.</p> : <div className="admin-inbox">{applications.map((application) => <article key={application.id}><p><strong>{application.name}</strong> · {application.position.title}</p><p>{application.email} · {application.phone}</p>{application.cvUrl && <p><a className="text-link" href={application.cvUrl} target="_blank" rel="noreferrer">Open CV</a></p>}{application.coverLetter && <p>{application.coverLetter}</p>}<form className="admin-stack compact" onSubmit={(event) => { event.preventDefault(); saveInterview(application, event.currentTarget) }}><label className="admin-field"><span>Application status</span><select name="status" defaultValue={application.status}><option value="RECEIVED">Received</option><option value="SHORTLISTED">Shortlisted</option><option value="INTERVIEW">Interview</option><option value="DECLINED">Declined</option><option value="HIRED">Hired</option></select></label><label className="admin-field"><span>Interview outcome</span><input name="outcome" defaultValue={application.interviewResponse?.outcome || ''} placeholder="e.g. Invited, passed, declined" /></label><label className="admin-field"><span>Interview date</span><input name="scheduledFor" type="datetime-local" defaultValue={application.interviewResponse?.scheduledFor ? application.interviewResponse.scheduledFor.slice(0, 16) : ''} /></label><label className="admin-field"><span>Interview notes / response</span><textarea name="notes" defaultValue={application.interviewResponse?.notes || ''} /></label><button className="admin-add" type="submit">Save interview response</button></form></article>)}</div>}</AdminCard></div>}
 
       {tab === 'contact' && <div className="admin-stack"><AdminCard title="Contact page details"><div className="admin-grid two"><Field label="Phone" value={contact.phone} onChange={(phone) => setContact({ ...contact, phone })} /><Field label="Email" type="email" value={contact.email} onChange={(email) => setContact({ ...contact, email })} /><Field label="Office" value={contact.office} onChange={(office) => setContact({ ...contact, office })} /><Field label="Working hours" value={contact.hours} onChange={(hours) => setContact({ ...contact, hours })} /></div></AdminCard></div>}
 

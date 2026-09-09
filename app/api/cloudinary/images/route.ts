@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
 import { NextResponse } from 'next/server'
+import { getAdminSession } from '@/lib/auth'
 
 const folder = 'stima_technics'
 
@@ -17,6 +18,7 @@ function signature(params: Record<string, string>, secret: string) {
 }
 
 export async function GET() {
+  if (!await getAdminSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const { cloudName, apiKey, apiSecret } = config()
     const auth = Buffer.from(`${apiKey}:${apiSecret}`).toString('base64')
@@ -28,6 +30,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!await getAdminSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const { cloudName, apiKey, apiSecret } = config()
     const form = await request.formData()
@@ -49,6 +52,7 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  if (!await getAdminSession()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const { cloudName, apiKey, apiSecret } = config()
     const { publicId } = await request.json()
