@@ -1,17 +1,11 @@
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
-import { SiteFooter, SiteHeader, SectionHeading } from '@/components/site'
+import { PageHero, SiteFooter, SiteHeader, SectionHeading } from '@/components/site'
 export default function Careers(){
     return <>
     <SiteHeader/>
     <main>
-        <section className="page-hero">
-            <div className="shell">
-                <p className="eyebrow" style={{color:'#8bd0ff'}}>Careers at Stima</p>
-                <h1>Bring your expertise to work that matters.</h1>
-                <p>We welcome skilled professionals, technicians, engineers, and talented individuals who care about the quality of the work.</p>
-            </div>
-        </section>
+        <PageHero eyebrow="Careers at Stima" title="Bring your expertise to work that matters." text="We welcome skilled professionals, technicians, engineers, and talented individuals who care about the quality of the work." image="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=2200&q=85" />
         <section className="section">
             <div className="shell">
                 <SectionHeading eyebrow="Why Stima" title="A place to build a career, not just a CV."/>
