@@ -25,8 +25,19 @@ export default function About() {
     <>
       <SiteHeader />
       <main>
-        <section className="page-hero">
-          <div className="shell">
+        <section className="page-hero page-hero-media about-hero">
+          <div className="page-hero-media-layer" aria-hidden="true">
+            <Image
+              className="page-hero-image"
+              src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=2000&q=90"
+              alt=""
+              fill
+              priority
+              unoptimized
+            />
+            <div className="page-hero-overlay" />
+          </div>
+          <div className="shell page-hero-content">
             <p className="eyebrow" style={{ color: "#8bd0ff" }}>
               Who we are
             </p>

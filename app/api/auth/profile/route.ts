@@ -15,11 +15,15 @@ export async function PUT(request: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const body = await request.json()
   const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
+  const confirmEmail = typeof body.confirmEmail === 'string' ? body.confirmEmail.trim().toLowerCase() : ''
   const currentPassword = typeof body.currentPassword === 'string' ? body.currentPassword : ''
   const newPassword = typeof body.newPassword === 'string' ? body.newPassword : ''
+  const confirmPassword = typeof body.confirmPassword === 'string' ? body.confirmPassword : ''
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return NextResponse.json({ error: 'Enter a valid email address.' }, { status: 400 })
+  if (email !== confirmEmail) return NextResponse.json({ error: 'The new email addresses do not match.' }, { status: 400 })
   if (!currentPassword) return NextResponse.json({ error: 'Enter your current password to save profile changes.' }, { status: 400 })
   if (newPassword && newPassword.length < 12) return NextResponse.json({ error: 'A new password must be at least 12 characters.' }, { status: 400 })
+  if (newPassword !== confirmPassword) return NextResponse.json({ error: 'The new passwords do not match.' }, { status: 400 })
 
   const saved = await prisma.adminCredential.findUnique({ where: { id: 1 } })
   const environmentPassword = process.env.ADMIN_PASSWORD
