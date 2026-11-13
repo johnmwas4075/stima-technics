@@ -31,6 +31,7 @@ export function SiteHeader() {
   const isCurrent = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
+    <>
     <header className="site-header">
       <div className="shell header-inner">
         <Link href="/" className="brand" aria-label="Stima Technics home">
@@ -83,6 +84,8 @@ export function SiteHeader() {
         </nav>
       )}
     </header>
+    <div className="site-header-spacer" aria-hidden="true" />
+    </>
   )
 }
 

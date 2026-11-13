@@ -9,7 +9,8 @@ import { useSiteContent } from '@/components/content-provider'
 
 export default function Home() {
   const content = useSiteContent()
-  const liveServices = services.map((service) => ({ ...service, ...((content.serviceItems as { id: string }[] | undefined)?.find((item) => item.id === service.slug) ?? {}) }))
+  const savedServices = content.serviceItems as { id: string; title: string; short: string; description: string; image: string }[] | undefined
+  const liveServices = savedServices ? savedServices.flatMap((item) => { const base = services.find((service) => service.slug === item.id); return base ? [{ ...base, ...item, slug: item.id }] : [] }) : services
   const featuredServices = liveServices.filter((service) => ((content.featuredServices as string[] | undefined) ?? liveServices.filter((item) => item.slug !== 'hvac').slice(0, 3).map((item) => item.slug)).includes(service.slug))
   const liveStats: { number: string; label: string }[] = (content.statValues as { number: string; label: string }[] | undefined) ?? stats.map(([number, label]) => ({ number, label }))
   const liveAccreditations = ((content.accreditationItems as { name: string }[] | undefined)?.map((item) => item.name).filter(Boolean)) ?? accreditations
