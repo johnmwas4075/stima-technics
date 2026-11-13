@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { SiteFooter, SiteHeader, SectionHeading } from "@/components/site";
 import { coreValues, markets, principles } from "@/lib/site-data";
+import { useSiteContent } from '@/components/content-provider'
 
 const valueExplanations = [
   "We do what we say we will do, communicate honestly, and take responsibility for every commitment we make.",
@@ -15,13 +16,28 @@ const valueExplanations = [
 
 export default function About() {
   const [openValue, setOpenValue] = useState(0);
+  const content = useSiteContent()
+  const livePrinciples = (content.whyWork as typeof principles | undefined) ?? principles
+  const liveValues = (content.values as { title: string; explanation: string }[] | undefined) ?? coreValues.map((title, index) => ({ title, explanation: valueExplanations[index] }))
+  const liveMarkets = (content.marketItems as string[] | undefined) ?? markets
 
   return (
     <>
       <SiteHeader />
       <main>
-        <section className="page-hero">
-          <div className="shell">
+        <section className="page-hero page-hero-media about-hero">
+          <div className="page-hero-media-layer" aria-hidden="true">
+            <Image
+              className="page-hero-image"
+              src="https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?auto=format&fit=crop&w=2000&q=90"
+              alt=""
+              fill
+              priority
+              unoptimized
+            />
+            <div className="page-hero-overlay" />
+          </div>
+          <div className="shell page-hero-content">
             <p className="eyebrow" style={{ color: "#8bd0ff" }}>
               Who we are
             </p>
@@ -46,13 +62,7 @@ export default function About() {
             <div className="prose-copy history-story">
               <p className="eyebrow">Our history</p>
               <h2>Built in Thika. Trusted across Kenya.</h2>
-              <p>
-                Stima Technics began with a simple belief: electrical work
-                should be delivered with the same care as the structure it
-                powers. From our headquarters in Thika, we have grown by
-                supporting project teams with practical engineering, clean
-                installation, and responsive aftercare.
-              </p>
+              <p>{(content.history as string | undefined) ?? 'Stima Technics began with a simple belief: electrical work should be delivered with the same care as the structure it powers. From our headquarters in Thika, we have grown by supporting project teams with practical engineering, clean installation, and responsive aftercare.'}</p>
               <p>
                 Today, our people bring together field experience and modern
                 technical thinking across commercial, industrial, institutional,
@@ -76,19 +86,12 @@ export default function About() {
               <div className="mission-card">
                 <p className="eyebrow">Mission</p>
                 <h3>Make complex systems dependable.</h3>
-                <p>
-                  To deliver safe, high-quality electrical and technical
-                  solutions that help our clients operate with confidence.
-                </p>
+                <p>{(content.mission as string | undefined) ?? 'To deliver safe, high-quality electrical and technical solutions that help our clients operate with confidence.'}</p>
               </div>
               <div className="mission-card">
                 <p className="eyebrow">Vision</p>
                 <h3>Be the partner people call first.</h3>
-                <p>
-                  To become one of East Africa’s most trusted engineering
-                  contractors through capability, integrity, and consistent
-                  delivery.
-                </p>
+                <p>{(content.vision as string | undefined) ?? 'To become one of East Africa’s most trusted engineering contractors through capability, integrity, and consistent delivery.'}</p>
               </div>
             </div>
           </div>
@@ -106,7 +109,7 @@ export default function About() {
                 text="A dependable partner is built through the choices people make before, during, and after every project."
               />
               <div className="value-list">
-                {principles.map((principle, index) => (
+                {livePrinciples.map((principle, index) => (
                   <div className="value-row" key={principle.title}>
                     <strong>0{index + 1}</strong>
                     <h3>{principle.title}</h3>
@@ -146,12 +149,12 @@ export default function About() {
                 text="The principles that guide how we plan, communicate, and deliver."
               />
               <div className="values-accordion">
-                {coreValues.map((value, index) => {
+                {liveValues.map((value, index) => {
                   const isOpen = openValue === index;
                   return (
                     <div
                       className={`value-accordion-item ${isOpen ? "open" : ""}`}
-                      key={value}
+                      key={value.title}
                     >
                       <button
                         type="button"
@@ -161,7 +164,7 @@ export default function About() {
                         aria-controls={`value-panel-${index}`}
                       >
                         <span>0{index + 1}</span>
-                        <strong>{value}</strong>
+                        <strong>{value.title}</strong>
                         <ChevronDown size={19} />
                       </button>
                       <div
@@ -169,7 +172,7 @@ export default function About() {
                         id={`value-panel-${index}`}
                         hidden={!isOpen}
                       >
-                        <p>{valueExplanations[index]}</p>
+                        <p>{value.explanation || valueExplanations[index] || ''}</p>
                       </div>
                     </div>
                   );
@@ -191,7 +194,7 @@ export default function About() {
               text="Our technical teams adapt to the operating realities of each environment."
             />
             <div className="markets-grid">
-              {markets.map((market) => (
+              {liveMarkets.map((market) => (
                 <div className="market-card" key={market}>
                   {market}
                 </div>

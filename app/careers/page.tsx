@@ -1,7 +1,13 @@
+ 'use client'
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
 import { PageHero, SiteFooter, SiteHeader, SectionHeading } from '@/components/site'
+import { useSiteContent } from '@/components/content-provider'
+import { JobApplicationForm } from '@/components/forms'
+import { useEffect, useState } from 'react'
 export default function Careers(){
+    const [positions, setPositions] = useState<{ id: string; title: string; responsibilities: string; qualifications: string; closesOn: string | null }[]>([])
+    useEffect(() => { fetch('/api/jobs').then((response) => response.ok ? response.json() : null).then((result) => result && setPositions(result.positions)).catch(() => undefined) }, [])
     return <>
     <SiteHeader/>
     <main>
@@ -28,15 +34,13 @@ export default function Careers(){
         <section className="content-section" style={{background:'white'}}>
             <div className="shell">
                 <SectionHeading eyebrow="Current opportunities" title="Open roles" text="We will post active opportunities here as they become available."/>
-                <div className="vacancy-empty">
+                {positions.length === 0 ? <div className="vacancy-empty">
                     <strong>No current vacancies</strong>
                     <p>There are no open positions at the moment, but we are always interested in meeting excellent people.</p>
-                </div>
+                </div> : <div className="career-grid">{positions.map((position) => <article className="career-card" key={position.id}><h3>{position.title}</h3><p>{position.responsibilities}</p><p><strong>Apply before: </strong>{position.closesOn ? new Date(position.closesOn).toLocaleDateString() : 'Contact us'}</p><Link className="button button-primary job-details-link" href={`/careers/${position.id}`}>View details <ArrowRight size={16}/></Link></article>)}</div>}
                 <div style={{marginTop:70}}>
                     <SectionHeading eyebrow="General application" title="Keep us in mind." text="Send us your details and a short note about the kind of work you do. We will keep your application on file for relevant future opportunities."/>
-                    <Link href="mailto:careers@stimatechnics.co.ke" className="button button-primary">
-                        Send a general application <ArrowRight size={16}/>
-                    </Link>
+                    {positions.length > 0 ? <JobApplicationForm positions={positions} /> : <Link href="mailto:careers@stimatechnics.co.ke" className="button button-primary">Send a general application <ArrowRight size={16}/></Link>}
                 </div>
             </div>
         </section>

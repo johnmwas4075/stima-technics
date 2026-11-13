@@ -1,10 +1,15 @@
 allowBuilds:
-  '@prisma/client': false
-  '@prisma/engines': false
+  '@prisma/client': True
+  '@prisma/engines': set this to true or false
   esbuild: set this to true or false
   msgpackr-extract: set this to true or false
-  prisma: false
+  prisma: set this to true or false
   workerd: set this to true or false
 minimumReleaseAgeExclude:
   - '@next/*'
   - next
+permissions:
+  builds:
+    skills: true
+  core-js:
+    build: false

@@ -22,6 +22,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import { logoUrl, nav, heroSlides, type Service, type Testimonial } from '@/lib/site-data'
+import { useSiteContent } from '@/components/content-provider'
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false)
@@ -30,6 +31,7 @@ export function SiteHeader() {
   const isCurrent = (href: string) => href === '/' ? pathname === '/' : pathname.startsWith(href)
 
   return (
+    <>
     <header className="site-header">
       <div className="shell header-inner">
         <Link href="/" className="brand" aria-label="Stima Technics home">
@@ -82,10 +84,13 @@ export function SiteHeader() {
         </nav>
       )}
     </header>
+    <div className="site-header-spacer" aria-hidden="true" />
+    </>
   )
 }
 
 export function SiteFooter() {
+  const contact = (useSiteContent().contact as { phone?: string; email?: string; office?: string } | undefined) ?? {}
   return (
     <footer className="footer">
       <div className="shell footer-grid">
@@ -110,15 +115,15 @@ export function SiteFooter() {
           <p className="footer-label">Get in touch</p>
           <span>
             <MapPin size={15} />
-            Thika, Kenya
+            {contact.office ?? 'Thika, Kenya'}
           </span>
           <span>
             <Phone size={15} />
-            +254 700 000 000
+            {contact.phone ?? '+254 700 000 000'}
           </span>
           <span>
             <Mail size={15} />
-            hello@stimatechnics.co.ke
+            {contact.email ?? 'hello@stimatechnics.co.ke'}
           </span>
         </div>
         <div className="footer-newsletter">

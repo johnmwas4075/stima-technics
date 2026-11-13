@@ -1,0 +1,90 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  email     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model AdminCredential {
+  id           Int      @id @default(1)
+  email        String   @unique
+  passwordHash String
+  updatedAt    DateTime @updatedAt
+}
+
+model SiteContent {
+  id        Int      @id @default(1)
+  data      Json
+  updatedAt DateTime @updatedAt
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  message   String
+  createdAt DateTime @default(now())
+}
+
+model QuoteRequest {
+  id          String   @id @default(cuid())
+  name        String
+  company     String?
+  email       String
+  phone       String
+  service     String
+  location    String
+  projectType String
+  message     String
+  createdAt   DateTime @default(now())
+}
+
+model JobPosition {
+  id               String           @id @default(cuid())
+  title            String
+  responsibilities String
+  qualifications   String           @default("")
+  postedOn         DateTime         @default(now())
+  closesOn         DateTime?
+  publishOn        DateTime?
+  isOpen           Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  applications     JobApplication[]
+}
+
+model JobApplication {
+  id                String             @id @default(cuid())
+  positionId        String
+  name              String
+  email             String
+  phone             String
+  cvUrl             String?
+  coverLetter       String?
+  status            String             @default("RECEIVED")
+  createdAt         DateTime           @default(now())
+  position          JobPosition        @relation(fields: [positionId], references: [id], onDelete: Cascade)
+  interviewResponse InterviewResponse?
+}
+
+model InterviewResponse {
+  id            String         @id @default(cuid())
+  applicationId String         @unique
+  outcome       String
+  notes         String?
+  scheduledFor  DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  application   JobApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+}
