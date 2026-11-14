@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Trash2 } from 'lucide-react'
 import { accreditations, coreValues, markets, principles, services, stats, testimonials } from '@/lib/site-data'
+import { useRefreshSiteContent } from '@/components/content-provider'
 
 type Tab = 'home' | 'about' | 'services' | 'careers' | 'applications' | 'contact' | 'messages' | 'quotes'
 type DetailSection = { enabled: boolean; content: string; bulleted: boolean }
@@ -34,6 +35,8 @@ function Field({ label, value, onChange, type = 'text', placeholder = '' }: { la
 export default function AdminPage() {
   const [tab, setTab] = useState<Tab>('home')
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState('')
+  const refreshSiteContent = useRefreshSiteContent()
   const [homeSummary, setHomeSummary] = useState('Stima Technics is a Kenya-based electrical contracting and engineering company headquartered in Thika. We serve commercial, industrial, institutional, and construction clients with technical depth, disciplined delivery, and a long-term view.')
   const [statValues, setStatValues] = useState(stats.map(([number, label]) => ({ number, label })))
   const [featuredServices, setFeaturedServices] = useState(services.filter((service) => service.slug !== 'hvac').slice(0, 3).map((service) => service.slug))
@@ -62,19 +65,19 @@ export default function AdminPage() {
     const contentResponse = await fetch('/api/admin/content')
     const draft = contentResponse.ok ? (await contentResponse.json()).data : null
     if (draft) {
-      if (draft.homeSummary) setHomeSummary(draft.homeSummary)
-      if (draft.statValues) setStatValues(draft.statValues)
-      if (draft.featuredServices) setFeaturedServices(draft.featuredServices)
-      if (draft.accreditationItems) setAccreditationItems(draft.accreditationItems)
-      if (draft.testimonialItems) setTestimonialItems(draft.testimonialItems)
-      if (draft.history) setHistory(draft.history)
-      if (draft.mission) setMission(draft.mission)
-      if (draft.vision) setVision(draft.vision)
-      if (draft.whyWork) setWhyWork(draft.whyWork)
-      if (draft.values) setValues(draft.values)
-      if (draft.marketItems) setMarketItems(draft.marketItems)
-      if (draft.serviceItems) setServiceItems(draft.serviceItems)
-      if (draft.contact) setContact(draft.contact)
+      if (draft.homeSummary !== undefined) setHomeSummary(draft.homeSummary)
+      if (draft.statValues !== undefined) setStatValues(draft.statValues)
+      if (draft.featuredServices !== undefined) setFeaturedServices(draft.featuredServices)
+      if (draft.accreditationItems !== undefined) setAccreditationItems(draft.accreditationItems)
+      if (draft.testimonialItems !== undefined) setTestimonialItems(draft.testimonialItems)
+      if (draft.history !== undefined) setHistory(draft.history)
+      if (draft.mission !== undefined) setMission(draft.mission)
+      if (draft.vision !== undefined) setVision(draft.vision)
+      if (draft.whyWork !== undefined) setWhyWork(draft.whyWork)
+      if (draft.values !== undefined) setValues(draft.values)
+      if (draft.marketItems !== undefined) setMarketItems(draft.marketItems)
+      if (draft.serviceItems !== undefined) setServiceItems(draft.serviceItems)
+      if (draft.contact !== undefined) setContact(draft.contact)
     }
     const inboxResponse = await fetch('/api/admin/inbox')
     if (inboxResponse.ok) { const inbox = await inboxResponse.json(); setMessages(inbox.messages); setQuotes(inbox.quotes) }
@@ -87,9 +90,22 @@ export default function AdminPage() {
   }, [])
 
   const save = async () => {
-    const response = await fetch('/api/admin/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ homeSummary, statValues, featuredServices, accreditationItems, testimonialItems, history, mission, vision, whyWork, values, marketItems, serviceItems, contact }) })
-    const savedPositions = await Promise.all(positions.map(async (position) => { const endpoint = position.id ? `/api/jobs/${position.id}` : '/api/jobs'; const method = position.id ? 'PATCH' : 'POST'; const jobResponse = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(position) }); return jobResponse.ok ? (await jobResponse.json()).position as Position : position }))
-    if (response.ok) { setPositions(savedPositions); setSaved(true); window.setTimeout(() => setSaved(false), 2200) }
+    setSaveError('')
+    setSaved(false)
+    try {
+      const response = await fetch('/api/admin/content', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ homeSummary, statValues, featuredServices, accreditationItems, testimonialItems, history, mission, vision, whyWork, values, marketItems, serviceItems, contact }) })
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}))
+        throw new Error(result.error || 'Unable to save changes. Please try again.')
+      }
+      const savedPositions = await Promise.all(positions.map(async (position) => { const endpoint = position.id ? `/api/jobs/${position.id}` : '/api/jobs'; const method = position.id ? 'PATCH' : 'POST'; const jobResponse = await fetch(endpoint, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(position) }); return jobResponse.ok ? (await jobResponse.json()).position as Position : position }))
+      setPositions(savedPositions)
+      await refreshSiteContent()
+      setSaved(true)
+      window.setTimeout(() => setSaved(false), 2200)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save changes. Please try again.')
+    }
   }
   const currentService = serviceItems.find((service) => service.id === selectedService) ?? serviceItems[0]
   const sortPositions = (items: Position[]) => [...items].sort((a, b) => new Date(b.publishOn || b.postedOn).getTime() - new Date(a.publishOn || a.postedOn).getTime())
@@ -100,7 +116,7 @@ export default function AdminPage() {
   const saveInterview = async (application: JobApplication, form: HTMLFormElement) => { const fields = Object.fromEntries(new FormData(form)); const response = await fetch(`/api/jobs/applications/${application.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status: fields.status, interview: { outcome: fields.outcome, notes: fields.notes, scheduledFor: fields.scheduledFor } }) }); if (response.ok) { const refreshed = await fetch('/api/jobs/applications').then((result) => result.json()); setApplications(refreshed.applications) } }
 
   return <main className="admin-page"><aside className="admin-sidebar"><a className="admin-brand" href="/"><strong>STIMA</strong><span>ADMIN PANEL</span></a><nav>{tabs.map((item) => <button key={item.id} className={tab === item.id ? 'active' : ''} onClick={() => setTab(item.id)}><strong>{item.label}</strong><small>{item.hint}</small></button>)}</nav><a className="admin-profile-link" href="/admin/analytics">Analytics</a><a className="admin-profile-link" href="/admin/profile">Profile &amp; login details</a><a className="admin-view-site" href="/" target="_blank" rel="noreferrer">View public website ↗</a></aside>
-    <section className="admin-content"><header className="admin-topbar"><div><p className="eyebrow">Content management</p><h1>{tabs.find((item) => item.id === tab)?.label}</h1></div><button className="admin-save" onClick={save}>{saved ? 'Saved locally' : 'Save changes'}</button></header>
+    <section className="admin-content"><header className="admin-topbar"><div><p className="eyebrow">Content management</p><h1>{tabs.find((item) => item.id === tab)?.label}</h1>{saveError && <p role="alert" className="admin-error">{saveError}</p>}</div><button className="admin-save" onClick={save}>{saved ? 'Saved' : 'Save changes'}</button></header>
 
       {tab === 'home' && <div className="admin-stack"><AdminCard title="About us summary" description="The introduction shown on the homepage."><Field label="Summary" type="textarea" value={homeSummary} onChange={setHomeSummary} /></AdminCard><AdminCard title="Company statistics" description="Update the figures that appear below the homepage introduction."><div className="admin-grid three">{statValues.map((stat, index) => <Field key={stat.label} label={stat.label} value={stat.number} onChange={(number) => setStatValues((items) => items.map((item, itemIndex) => itemIndex === index ? { ...item, number } : item))} />)}</div></AdminCard><AdminCard title="Featured services" description="Choose up to three services for the homepage."><div className="admin-check-list">{serviceItems.map((service) => <label key={service.id}><input type="checkbox" checked={featuredServices.includes(service.id)} onChange={() => setFeaturedServices((items) => items.includes(service.id) ? items.filter((id) => id !== service.id) : items.length < 3 ? [...items, service.id] : items)} />{service.title}</label>)}</div><small className="admin-note">{featuredServices.length}/3 services selected</small></AdminCard><AdminCard title="Accreditations" description="Add a logo image URL. Names are optional and will appear under the logo when provided."><Repeater items={accreditationItems} addLabel="Add accreditation" onAdd={() => setAccreditationItems((items) => [...items, { name: '', image: '' }])} onRemove={(index) => setAccreditationItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} render={(item, index) => <div className="admin-grid two"><Field label="Name" value={item.name} onChange={(name) => setAccreditationItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, name } : entry))} /><Field label="Logo image URL" value={item.image} onChange={(image) => setAccreditationItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, image } : entry))} /></div>} /></AdminCard><AdminCard title="Testimonials" description="Edit the client testimonials displayed on the homepage."><Repeater items={testimonialItems} addLabel="Add testimonial" onAdd={() => setTestimonialItems((items) => [...items, { name: '', role: '', quote: '', image: '' }])} onRemove={(index) => setTestimonialItems((items) => items.filter((_, itemIndex) => itemIndex !== index))} render={(item, index) => <div className="admin-grid two"><Field label="Client name" value={item.name} onChange={(name) => setTestimonialItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, name } : entry))} /><Field label="Role / company" value={item.role} onChange={(role) => setTestimonialItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, role } : entry))} /><Field label="Quote" type="textarea" value={item.quote} onChange={(quote) => setTestimonialItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, quote } : entry))} /><Field label="Photo URL" value={item.image} onChange={(image) => setTestimonialItems((items) => items.map((entry, entryIndex) => entryIndex === index ? { ...entry, image } : entry))} /></div>} /></AdminCard></div>}
 
